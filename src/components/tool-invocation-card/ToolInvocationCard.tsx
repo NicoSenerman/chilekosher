@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ToolUIPart } from "ai";
-import { RobotIcon, CaretDownIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, CaretDownIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/button/Button";
 import { Card } from "@/components/card/Card";
 import { APPROVAL } from "@/shared";
@@ -19,6 +19,17 @@ function isToolResultWithContent(
     Array.isArray((result as ToolResultWithContent).content)
   );
 }
+
+// Friendly names for tools
+const toolDisplayNames: Record<string, string> = {
+  "tool-buscarProductosKosher": "Buscando productos kosher",
+  "tool-buscarLugaresKosher": "Buscando lugares kosher",
+  "tool-obtenerClima": "Consultando el clima",
+  "tool-obtenerHoraLocal": "Consultando hora local",
+  "tool-programarTarea": "Programando tarea",
+  "tool-obtenerTareasProgramadas": "Listando tareas",
+  "tool-cancelarTareaProgramada": "Cancelando tarea"
+};
 
 interface ToolInvocationCardProps {
   toolUIPart: ToolUIPart;
@@ -39,31 +50,35 @@ export function ToolInvocationCard({
   toolCallId,
   needsConfirmation,
   onSubmit
-  // addToolResult
 }: ToolInvocationCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Collapsed by default
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Get friendly display name
+  const displayName =
+    toolDisplayNames[toolUIPart.type] || toolUIPart.type.replace("tool-", "");
 
   return (
-    <Card className="p-4 my-3 w-full max-w-[500px] rounded-md bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
+    <Card className="p-3 my-2 w-full max-w-[500px] rounded-md bg-[#4A6D7C]/5 dark:bg-[#4A6D7C]/10 border border-[#4A6D7C]/20 overflow-hidden">
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 cursor-pointer"
       >
         <div
-          className={`${needsConfirmation ? "bg-[#F48120]/10" : "bg-[#F48120]/5"} p-1.5 rounded-full flex-shrink-0`}
+          className={`${needsConfirmation ? "bg-[#4A6D7C]/20" : "bg-[#4A6D7C]/10"} p-1.5 rounded-full flex-shrink-0`}
         >
-          <RobotIcon size={16} className="text-[#F48120]" />
+          <MagnifyingGlassIcon size={14} className="text-[#4A6D7C]" />
         </div>
-        <h4 className="font-medium flex items-center gap-2 flex-1 text-left">
-          {toolUIPart.type}
+        <span className="text-sm text-[#4A6D7C] flex items-center gap-2 flex-1 text-left">
+          {displayName}
           {!needsConfirmation && toolUIPart.state === "output-available" && (
-            <span className="text-xs text-[#F48120]/70">✓ Completed</span>
+            <span className="text-xs text-[#4A6D7C]/70">✓</span>
           )}
-        </h4>
+        </span>
         <CaretDownIcon
-          size={16}
-          className={`text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+          size={14}
+          className={`text-[#4A6D7C]/50 transition-transform ${isExpanded ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -75,10 +90,10 @@ export function ToolInvocationCard({
           style={{ maxHeight: isExpanded ? "180px" : "0px" }}
         >
           <div className="mb-3">
-            <h5 className="text-xs font-medium mb-1 text-muted-foreground">
-              Arguments:
+            <h5 className="text-xs font-medium mb-1 text-[#7D756E]">
+              Consulta:
             </h5>
-            <pre className="bg-background/80 p-2 rounded-md text-xs overflow-auto whitespace-pre-wrap break-words max-w-[450px]">
+            <pre className="bg-white/50 dark:bg-neutral-900/50 p-2 rounded-md text-xs overflow-auto whitespace-pre-wrap break-words max-w-[450px] text-[#7D756E]">
               {JSON.stringify(toolUIPart.input, null, 2)}
             </pre>
           </div>
@@ -86,28 +101,28 @@ export function ToolInvocationCard({
           {needsConfirmation && toolUIPart.state === "input-available" && (
             <div className="flex gap-2 justify-end">
               <Button
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 onClick={() => onSubmit({ toolCallId, result: APPROVAL.NO })}
               >
-                Reject
+                Rechazar
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => onSubmit({ toolCallId, result: APPROVAL.YES })}
               >
-                Approve
+                Aprobar
               </Button>
             </div>
           )}
 
           {!needsConfirmation && toolUIPart.state === "output-available" && (
-            <div className="mt-3 border-t border-[#F48120]/10 pt-3">
-              <h5 className="text-xs font-medium mb-1 text-muted-foreground">
-                Result:
+            <div className="mt-3 border-t border-[#4A6D7C]/10 pt-3">
+              <h5 className="text-xs font-medium mb-1 text-[#7D756E]">
+                Resultado:
               </h5>
-              <pre className="bg-background/80 p-2 rounded-md text-xs overflow-auto whitespace-pre-wrap break-words max-w-[450px]">
+              <pre className="bg-white/50 dark:bg-neutral-900/50 p-2 rounded-md text-xs overflow-auto whitespace-pre-wrap break-words max-w-[450px] text-[#7D756E]">
                 {(() => {
                   const result = toolUIPart.output;
                   if (isToolResultWithContent(result)) {

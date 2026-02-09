@@ -1,7 +1,4 @@
 import { routeAgentRequest, type Schedule } from "agents";
-
-import { getSchedulePrompt } from "agents/schedule";
-
 import { AIChatAgent } from "agents/ai-chat-agent";
 import {
   generateId,
@@ -13,78 +10,91 @@ import {
   createUIMessageStreamResponse,
   type ToolSet
 } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { processToolCalls, cleanupMessages } from "./utils";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { processToolCalls, cleanupMessages, limitMessages } from "./utils";
 import { tools, executions } from "./tools";
-// import { env } from "cloudflare:workers";
+import { getSystemPrompt } from "./system-prompt";
 
-const model = openai("gpt-4o-2024-11-20");
-// Cloudflare AI Gateway
-// const openai = createOpenAI({
-//   apiKey: env.OPENAI_API_KEY,
-//   baseURL: env.GATEWAY_BASE_URL,
-// });
-
-/**
- * Chat Agent implementation that handles real-time AI chat interactions
- */
 export class Chat extends AIChatAgent<Env> {
-  /**
-   * Handles incoming chat messages and manages the response stream
-   */
   async onChatMessage(
     onFinish: StreamTextOnFinishCallback<ToolSet>,
     _options?: { abortSignal?: AbortSignal }
   ) {
-    // const mcpConnection = await this.mcp.connect(
-    //   "https://path-to-mcp-server/sse"
-    // );
+    console.log("=== onChatMessage START ===");
 
-    // Collect all tools, including MCP tools
-    const allTools = {
-      ...tools,
-      ...this.mcp.getAITools()
-    };
+    const allTools = { ...tools };
+
+    // OpenRouter
+    const openrouter = createOpenRouter({
+      apiKey: this.env.OPENROUTER_API_KEY,
+    });
+    const model = openrouter.chat("moonshotai/kimi-k2.5");
 
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
-        // Clean up incomplete tool calls to prevent API errors
-        const cleanedMessages = cleanupMessages(this.messages);
+        console.log("=== execute() START ===");
 
-        // Process any pending tool calls from previous messages
-        // This handles human-in-the-loop confirmations for tools
+        const limitedMessages = limitMessages(this.messages, 10);
+        const cleanedMessages = cleanupMessages(limitedMessages);
+        console.log("Cleaned messages count:", cleanedMessages.length);
+
         const processedMessages = await processToolCalls({
           messages: cleanedMessages,
           dataStream: writer,
           tools: allTools,
           executions
         });
+        console.log("Processed messages count:", processedMessages.length);
+
+        const modelMessages = await convertToModelMessages(processedMessages);
+        console.log("Model messages count:", modelMessages.length);
+
+        console.log("=== Calling streamText ===");
+
+        const systemMessage = {
+          role: "system" as const,
+          content: getSystemPrompt(),
+        };
 
         const result = streamText({
-          system: `You are a helpful assistant that can do various tasks... 
-
-${getSchedulePrompt({ date: new Date() })}
-
-If the user asks to schedule a task, use the schedule tool to schedule the task.
-`,
-
-          messages: convertToModelMessages(processedMessages),
+          // NO system prop here
+          messages: [systemMessage, ...modelMessages],
           model,
           tools: allTools,
-          // Type boundary: streamText expects specific tool types, but base class uses ToolSet
-          // This is safe because our tools satisfy ToolSet interface (verified by 'satisfies' in tools.ts)
-          onFinish: onFinish as unknown as StreamTextOnFinishCallback<
-            typeof allTools
-          >,
-          stopWhen: stepCountIs(10)
+          onFinish: (event) => {
+            console.log("=== onFinish ===", {
+              finishReason: event.finishReason,
+              steps: event.steps?.length,
+              textLength: event.text?.length
+            });
+            console.log(
+              "=== Cache Stats ===",
+              JSON.stringify(event.providerMetadata, null, 2)
+            );
+            (onFinish as StreamTextOnFinishCallback<typeof allTools>)(event);
+          },
+          stopWhen: stepCountIs(10),
+          onStepFinish: (step) => {
+            console.log("=== Step finished ===", {
+              stepType: step.stepType,
+              finishReason: step.finishReason,
+              toolCalls: step.toolCalls?.length,
+              toolResults: step.toolResults?.length,
+              textLength: step.text?.length
+            });
+          }
         });
 
+        console.log("=== Merging stream ===");
         writer.merge(result.toUIMessageStream());
+        console.log("=== Stream merged ===");
       }
     });
 
+    console.log("=== Returning response ===");
     return createUIMessageStreamResponse({ stream });
   }
+
   async executeTask(description: string, _task: Schedule<string>) {
     await this.saveMessages([
       ...this.messages,
@@ -92,39 +102,22 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
         id: generateId(),
         role: "user",
         parts: [
-          {
-            type: "text",
-            text: `Running scheduled task: ${description}`
-          }
+          { type: "text", text: `Running scheduled task: ${description}` }
         ],
-        metadata: {
-          createdAt: new Date()
-        }
+        metadata: { createdAt: new Date() }
       }
     ]);
   }
 }
 
-/**
- * Worker entry point that routes incoming requests to the appropriate handler
- */
 export default {
   async fetch(request: Request, env: Env, _ctx: ExecutionContext) {
     const url = new URL(request.url);
 
     if (url.pathname === "/check-open-ai-key") {
-      const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-      return Response.json({
-        success: hasOpenAIKey
-      });
-    }
-    if (!process.env.OPENAI_API_KEY) {
-      console.error(
-        "OPENAI_API_KEY is not set, don't forget to set it locally in .dev.vars, and use `wrangler secret bulk .dev.vars` to upload it to production"
-      );
+      return Response.json({ success: true });
     }
     return (
-      // Route the request to our agent or return 404 if not found
       (await routeAgentRequest(request, env)) ||
       new Response("Not found", { status: 404 })
     );

@@ -17,6 +17,23 @@ function isValidToolName<K extends PropertyKey, T extends object>(
 }
 
 /**
+ * Limit messages to the last N messages while keeping tool call pairs intact
+ */
+export function limitMessages(messages: UIMessage[], limit = 8): UIMessage[] {
+  if (messages.length <= limit) return messages;
+
+  // Take last N messages
+  const truncated = messages.slice(-limit);
+
+  // Ensure we don't start with an assistant message (can confuse the model)
+  if (truncated[0]?.role === "assistant") {
+    return truncated.slice(1);
+  }
+
+  return truncated;
+}
+
+/**
  * Processes tool invocations where human input is required, executing tools when authorized.
  */
 export async function processToolCalls<Tools extends ToolSet>({

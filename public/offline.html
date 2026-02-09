@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#4A6D7C" />
+    <title>Sin Conexion - Chile Kosher</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #4A6D7C;
+        --primary-dark: #3a5a68;
+        --bg-light: #ffffff;
+        --bg-dark: #1a1a1a;
+        --text-light: #1a1a1a;
+        --text-dark: #f5f5f5;
+        --text-muted-light: #666;
+        --text-muted-dark: #999;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--bg-light);
+        color: var(--text-light);
+        transition: background 0.3s, color 0.3s;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: var(--bg-dark);
+          color: var(--text-dark);
+        }
+        .subtitle {
+          color: var(--text-muted-dark);
+        }
+        .retry-btn {
+          background: var(--primary);
+        }
+        .retry-btn:hover {
+          background: var(--primary-dark);
+        }
+      }
+
+      .container {
+        text-align: center;
+        max-width: 400px;
+      }
+
+      .logo {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 32px;
+        border-radius: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      }
+
+      .icon-offline {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        opacity: 0.6;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: var(--primary);
+      }
+
+      .subtitle {
+        font-size: 16px;
+        color: var(--text-muted-light);
+        margin-bottom: 32px;
+        line-height: 1.5;
+      }
+
+      .retry-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+        background: var(--primary);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(74, 109, 124, 0.3);
+      }
+
+      .retry-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(74, 109, 124, 0.4);
+      }
+
+      .retry-btn:active {
+        transform: translateY(0);
+      }
+
+      .retry-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .tips {
+        margin-top: 48px;
+        padding: 20px;
+        background: rgba(74, 109, 124, 0.08);
+        border-radius: 12px;
+        text-align: left;
+      }
+
+      .tips-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--primary);
+      }
+
+      .tips ul {
+        font-size: 14px;
+        color: var(--text-muted-light);
+        padding-left: 20px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .tips {
+          background: rgba(74, 109, 124, 0.15);
+        }
+        .tips ul {
+          color: var(--text-muted-dark);
+        }
+      }
+
+      .tips li {
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .tips li:last-child {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img src="/pwa-192x192.png" alt="Chile Kosher" class="logo" />
+      
+      <svg class="icon-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+
+      <h1>Sin conexion</h1>
+      <p class="subtitle">
+        Parece que no tienes conexion a internet. 
+        Verifica tu conexion e intenta nuevamente.
+      </p>
+
+      <button class="retry-btn" onclick="window.location.reload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Reintentar
+      </button>
+
+      <div class="tips">
+        <div class="tips-title">Sugerencias:</div>
+        <ul>
+          <li>Verifica que tu WiFi o datos moviles esten activados</li>
+          <li>Intenta acercarte a tu router si usas WiFi</li>
+          <li>Reinicia tu conexion a internet</li>
+          <li>Si el problema persiste, intenta mas tarde</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Auto-retry when connection is restored
+      window.addEventListener('online', () => {
+        window.location.reload();
+      });
+    </script>
+  </body>
+</html>
