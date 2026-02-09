@@ -85,16 +85,20 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src")
     }
   },
-  build: {
-    sourcemap: false,
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      },
-      format: {
-        comments: false
+  environments: {
+    client: {
+      build: {
+        sourcemap: false,
+        minify: "terser",
+        terserOptions: {
+          compress: {
+            drop_console: true,
+            drop_debugger: true
+          },
+          format: {
+            comments: false
+          }
+        }
       }
     }
   }

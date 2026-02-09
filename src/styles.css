@@ -513,3 +513,146 @@ textarea {
 .markdown-body li > p:first-child {
   display: inline;
 }
+
+/* ================================
+   Tool Invocation Card Animations
+   ================================ */
+
+/* Shimmer effect on tool name text while loading */
+@keyframes tool-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.tool-shimmer {
+  background: linear-gradient(
+    90deg,
+    #4A6D7C 0%,
+    #4A6D7C 40%,
+    #6B8E9C 50%,
+    #4A6D7C 60%,
+    #4A6D7C 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: tool-shimmer 3s ease-in-out infinite;
+}
+
+.dark .tool-shimmer {
+  background: linear-gradient(
+    90deg,
+    #6B8E9C 0%,
+    #6B8E9C 40%,
+    #8BA5B0 50%,
+    #6B8E9C 60%,
+    #6B8E9C 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ================================
+   Progress Ring (loading spinner)
+   ================================ */
+
+@keyframes progress-ring-rotate {
+  0% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(270deg);
+  }
+}
+
+@keyframes progress-ring-fill {
+  0% {
+    stroke-dashoffset: 56.5;
+  }
+  50% {
+    stroke-dashoffset: 28;
+  }
+  100% {
+    stroke-dashoffset: 56.5;
+  }
+}
+
+.tool-progress-ring {
+  transform-origin: center;
+}
+
+.tool-progress-arc {
+  stroke-dasharray: 56.5;
+  stroke-dashoffset: 42;
+  transform-origin: center;
+  animation:
+    progress-ring-rotate 1.5s linear infinite,
+    progress-ring-fill 3s ease-in-out infinite;
+}
+
+/* ================================
+   Completion Badge (checkmark)
+   ================================ */
+
+@keyframes badge-circle-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes badge-check-draw {
+  0% {
+    stroke-dashoffset: 20;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.tool-badge-circle {
+  transform-origin: center;
+  animation: badge-circle-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.tool-badge-check {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: badge-check-draw 0.3s ease-out 0.25s forwards;
+}
+
+/* ================================
+   Cancelled Badge (X mark)
+   ================================ */
+
+@keyframes badge-cross-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tool-badge-cross {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: badge-cross-draw 0.3s ease-out 0.25s forwards;
+}

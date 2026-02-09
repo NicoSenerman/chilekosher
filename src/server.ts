@@ -16,9 +16,14 @@ import { tools, executions } from "./tools";
 import { getSystemPrompt } from "./system-prompt";
 
 export class Chat extends AIChatAgent<Env> {
+  /** Expose env publicly for tool access via getCurrentAgent() */
+  getEnv(): Env {
+    return this.env;
+  }
+
   async onChatMessage(
     onFinish: StreamTextOnFinishCallback<ToolSet>,
-    _options?: { abortSignal?: AbortSignal }
+    options?: { abortSignal?: AbortSignal }
   ) {
     console.log("=== onChatMessage START ===");
 
@@ -57,10 +62,10 @@ export class Chat extends AIChatAgent<Env> {
         };
 
         const result = streamText({
-          // NO system prop here
           messages: [systemMessage, ...modelMessages],
           model,
           tools: allTools,
+          abortSignal: options?.abortSignal,
           onFinish: (event) => {
             console.log("=== onFinish ===", {
               finishReason: event.finishReason,
@@ -71,12 +76,11 @@ export class Chat extends AIChatAgent<Env> {
               "=== Cache Stats ===",
               JSON.stringify(event.providerMetadata, null, 2)
             );
-            (onFinish as StreamTextOnFinishCallback<typeof allTools>)(event);
+            onFinish(event as unknown as Parameters<typeof onFinish>[0]);
           },
           stopWhen: stepCountIs(10),
           onStepFinish: (step) => {
             console.log("=== Step finished ===", {
-              stepType: step.stepType,
               finishReason: step.finishReason,
               toolCalls: step.toolCalls?.length,
               toolResults: step.toolResults?.length,

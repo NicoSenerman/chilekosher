@@ -37,6 +37,8 @@ async function searchWithFallback(
         }
       });
 
+      console.log(`[searchWithFallback] ${indexName} raw response: ${JSON.stringify({ dataLength: searchResults.data?.length, hasMore: searchResults.has_more, query: searchResults.search_query, filenames: searchResults.data?.map((d: any) => d.filename) })}`);
+
       if (searchResults.data && searchResults.data.length > 0) {
         console.log(`[searchWithFallback] Success with ${indexName}: ${searchResults.data.length} results`);
         return { data: searchResults.data, usedIndex: indexName };
@@ -171,15 +173,24 @@ const buscarProductosKosher = tool({
 
     try {
       const { data, usedIndex } = await searchWithFallback(
-        agent!.env.AI,
+        agent!.getEnv().AI,
         consulta,
         "Chile Kosher/productos/",
-        10
+        3
       );
 
       console.log(`[buscarProductosKosher] Resultados: ${data?.length || 0} (index: ${usedIndex})`);
 
       if (data && data.length > 0) {
+        // Log chunk details for debugging
+        for (const item of data) {
+          console.log(`[buscarProductosKosher] File: ${item.filename}, chunks: ${item.content.length}, sizes: [${item.content.map(c => c.text.length).join(', ')}]`);
+          // Log first 200 chars of each chunk to see what AutoRAG is returning
+          item.content.forEach((c, i) => {
+            console.log(`[buscarProductosKosher] Chunk ${i}: ${c.text.substring(0, 200).replace(/\n/g, ' ')}`);
+          });
+        }
+
         const result = data
           .map((item) => {
             const text = item.content.map((c) => c.text).join("\n");
@@ -187,6 +198,7 @@ const buscarProductosKosher = tool({
           })
           .join("\n\n---\n\n");
 
+        console.log(`[buscarProductosKosher] Result length: ${result.length} chars`);
         return result;
       }
       return "No se encontraron productos para: " + consulta;
@@ -218,10 +230,10 @@ const buscarLugaresKosher = tool({
 
     try {
       const { data, usedIndex } = await searchWithFallback(
-        agent!.env.AI,
+        agent!.getEnv().AI,
         consulta,
         "Chile Kosher/lugares/",
-        10
+        3
       );
 
       console.log(`[buscarLugaresKosher] Resultados: ${data?.length || 0} (index: ${usedIndex})`);
@@ -248,6 +260,7 @@ const buscarLugaresKosher = tool({
  * Search for kosher certification symbols/logos (DISABLED)
  * Used when analyzing images to identify certification marks
  */
+// @ts-expect-error Disabled tool kept for reference
 const _buscarCertificacionKosher = tool({
   description: `Verificar si un símbolo/logo de certificación kosher es reconocido.
 Usa esta herramienta cuando:
@@ -269,7 +282,7 @@ Usa esta herramienta cuando:
     console.log(`[buscarCertificacionKosher] Filtrando a carpeta: Chile Kosher/info/`);
 
     try {
-      const searchResults = await agent!.env.AI.autorag(
+      const searchResults = await agent!.getEnv().AI.autorag(
         "chile-kosher-search-v2"
       ).search({
         query: descripcionLogo,

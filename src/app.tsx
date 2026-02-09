@@ -26,7 +26,7 @@ import {
 } from "@phosphor-icons/react";
 
 const toolsRequiringConfirmation: (keyof typeof tools)[] = [
-  "getWeatherInformation"
+  "obtenerClima"
 ];
 
 const getUserId = () => {
@@ -45,7 +45,7 @@ export default function Chat() {
       ? "dark"
       : "light";
   });
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, _setShowDebug] = useState(false);
   const [textareaHeight, setTextareaHeight] = useState("auto");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
@@ -55,6 +55,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const userScrolledUpRef = useRef(false);
 
   const scrollToBottom = useCallback((smooth = true) => {
     if (messagesContainerRef.current) {
@@ -84,6 +85,40 @@ export default function Chat() {
   useEffect(() => {
     scrollToBottom(false);
   }, [scrollToBottom]);
+
+  // Detect when user scrolls up (to pause auto-scroll during streaming)
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) {
+        userScrolledUpRef.current = true;
+      }
+    };
+
+    let touchStartY = 0;
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      const touchY = e.touches[0].clientY;
+      if (touchY > touchStartY + 10) {
+        userScrolledUpRef.current = true;
+      }
+      touchStartY = touchY;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: true });
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: true });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, []);
 
   useEffect(() => {
     // Show gallery button only on Android when installed as PWA
@@ -221,16 +256,42 @@ export default function Chat() {
     clearHistory,
     status,
     sendMessage,
-    stop
+    stop: originalStop
   } = useAgentChat<unknown, UIMessage<{ createdAt: string }>>({
     agent
   });
 
+  const cancelledToolIdsRef = useRef<Set<string>>(new Set());
+
+  // Wrapped stop that marks in-flight tools as cancelled
+  const stop = useCallback(() => {
+    agentMessages.forEach((msg: UIMessage) => {
+      msg.parts?.forEach((part) => {
+        if (isToolUIPart(part) && part.toolCallId && part.state !== "output-available") {
+          cancelledToolIdsRef.current.add(part.toolCallId);
+        }
+      });
+    });
+    originalStop();
+  }, [agentMessages, originalStop]);
+
   useEffect(() => {
-    if (agentMessages.length > 0) {
+    if (agentMessages.length > 0 && !userScrolledUpRef.current) {
       scrollToBottom();
     }
   }, [agentMessages, scrollToBottom]);
+
+  // Reset scroll lock when streaming finishes (ready for next message)
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    if (
+      (prevStatusRef.current === "streaming" || prevStatusRef.current === "submitted") &&
+      status === "ready"
+    ) {
+      userScrolledUpRef.current = false;
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   const pendingToolCallConfirmation = agentMessages.some((m: UIMessage) =>
     m.parts?.some(
@@ -502,6 +563,8 @@ export default function Chat() {
                                 toolUIPart={part}
                                 toolCallId={toolCallId}
                                 needsConfirmation={needsConfirmation}
+                                chatStatus={status}
+                                cancelledToolIds={cancelledToolIdsRef.current}
                                 onSubmit={({ toolCallId, result }) => {
                                   addToolResult({
                                     tool: part.type.replace("tool-", ""),
