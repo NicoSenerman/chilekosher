@@ -176,7 +176,7 @@ const buscarProductosKosher = tool({
         agent!.getEnv().AI,
         consulta,
         "Chile Kosher/productos/",
-        3
+        10
       );
 
       console.log(`[buscarProductosKosher] Resultados: ${data?.length || 0} (index: ${usedIndex})`);
@@ -233,7 +233,7 @@ const buscarLugaresKosher = tool({
         agent!.getEnv().AI,
         consulta,
         "Chile Kosher/lugares/",
-        3
+        10
       );
 
       console.log(`[buscarLugaresKosher] Resultados: ${data?.length || 0} (index: ${usedIndex})`);
